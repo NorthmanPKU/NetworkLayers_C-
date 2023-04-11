@@ -1,0 +1,2 @@
+/usr/bin/ar qc libswitch.a CMakeFiles/switch.dir/switch.cpp.o
+/usr/bin/ranlib libswitch.a

@@ -1,0 +1,5 @@
+if(EXISTS "/home/jijianan/ComputerNetwork/lab4-switch-NorthmanPKU/test_local/build/lab4_test[1]_tests.cmake")
+  include("/home/jijianan/ComputerNetwork/lab4-switch-NorthmanPKU/test_local/build/lab4_test[1]_tests.cmake")
+else()
+  add_test(lab4_test_NOT_BUILT lab4_test_NOT_BUILT)
+endif()

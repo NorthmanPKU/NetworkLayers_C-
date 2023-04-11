@@ -1,0 +1,5 @@
+/home/jijianan/lab1-myftp-NorthmanPKU/build/CMakeFiles/ftp_server.dir
+/home/jijianan/lab1-myftp-NorthmanPKU/build/CMakeFiles/ftp_client.dir
+/home/jijianan/lab1-myftp-NorthmanPKU/build/CMakeFiles/test.dir
+/home/jijianan/lab1-myftp-NorthmanPKU/build/CMakeFiles/edit_cache.dir
+/home/jijianan/lab1-myftp-NorthmanPKU/build/CMakeFiles/rebuild_cache.dir

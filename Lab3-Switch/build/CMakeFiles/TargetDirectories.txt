@@ -1,0 +1,5 @@
+/home/jijianan/ComputerNetwork/lab4-switch-NorthmanPKU/build/CMakeFiles/switch.dir
+/home/jijianan/ComputerNetwork/lab4-switch-NorthmanPKU/build/CMakeFiles/simulator.dir
+/home/jijianan/ComputerNetwork/lab4-switch-NorthmanPKU/build/CMakeFiles/test.dir
+/home/jijianan/ComputerNetwork/lab4-switch-NorthmanPKU/build/CMakeFiles/edit_cache.dir
+/home/jijianan/ComputerNetwork/lab4-switch-NorthmanPKU/build/CMakeFiles/rebuild_cache.dir

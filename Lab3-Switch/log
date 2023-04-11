@@ -1,0 +1,58 @@
+[ RUN      ] Topology1.Forwarding
+[DEBUG] received command: new 4
+[Info] created switch with 4 ports, switch id = 1
+[DEBUG] received command: addhost 1 de:ad:be:ef:00:01
+[INFO] host add to switch 1 port 2
+[DEBUG] received command: addhost 1 de:ad:be:ef:00:02
+[INFO] host add to switch 1 port 3
+[DEBUG] received command: addhost 1 de:ad:be:ef:00:03
+[INFO] host add to switch 1 port 4
+[DEBUG] received command: warmup
+switch 1 in_port = 4, pkt = 0x5608a43b74e0
+Switch 1 out_port = 0
+free 0x5608a43b74e0
+switch 1 in_port = 4, pkt = 0x5608a43b7ae0
+Switch 1 out_port = 0
+free 0x5608a43b7ae0
+switch 1 in_port = 3, pkt = 0x5608a43b7510
+Switch 1 out_port = 4
+[Info] switch 1 send to host de:ad:be:ef:00:03
+switch 1 in_port = 3, pkt = 0x5608a43b7b10
+Switch 1 out_port = 0
+free 0x5608a43b7b10
+switch 1 in_port = 2, pkt = 0x5608a43b7510
+Switch 1 out_port = 4
+[Info] switch 1 send to host de:ad:be:ef:00:03
+switch 1 in_port = 2, pkt = 0x5608a43b7b10
+Switch 1 out_port = 3
+[Info] switch 1 send to host de:ad:be:ef:00:02
+[DEBUG] received command: hostsend de:ad:be:ef:00:01 de:ad:be:ef:00:02 nwlrbbmqbhcdarzowkkyhiddqscdxrjmowfrxsjybldbefsarcbynecdyggxxpklorellnmpapqfwkhopkmcoqhnwnkuewhsqmgbbuqcljjivswmdkqtbxixmvtrrbljptnsnfwzqfjmafadrrwsofsbcnuvqhffbsaqxwpqcacehchzvfrkmlnozjkpqpxrjxkitzyxacbhhkicqcoendtomfgdwdwfcgpxiqvkuytdlcgdewhtaciohordtq
+Switch 1 from port 2
+Switch 1 from port 2 to port 3
+last hop src = de:ad:be:ef:00:01, length = 1, payload = nwlrbbmqbhcdarzowkkyhiddqscdxrjmowfrxsjybldbefsarcbynecdyggxxpklorellnmpapqfwkhopkmcoqhnwnkuewhsqmgbbuqcljjivswmdkqtbxixmvtrrbljptnsnfwzqfjmafadrrwsofsbcnuvqhffbsaqxwpqcacehchzvfrkmlnozjkpqpxrjxkitzyxacbhhkicqcoendtomfgdwdwfcgpxiqvkuytdlcgdewhtaciohordtq
+[DEBUG] received command: hostsend de:ad:be:ef:00:01 de:ad:be:ef:00:03 kvwcsgspqoqmsboaguwnnyqxnzlgdgwpbtrwblnsadeuguumoqcdrubetokyxhoachwdvmxxrdryxlmndqtukwagmlejuukwcibxubumenmeyatdrmydiajxloghiqfmzhlvihjouvsuyoypayulyeimuotehzriicfskpggkbbipzzrzucxamludfykgruowzgiooobppleqlwphapjnadqhdcnvwdtxjbmyppphauxnspusgdhiixqmbfjxj
+Switch 1 from port 2
+Switch 1 from port 2 to port 4
+last hop src = de:ad:be:ef:00:01, length = 1, payload = kvwcsgspqoqmsboaguwnnyqxnzlgdgwpbtrwblnsadeuguumoqcdrubetokyxhoachwdvmxxrdryxlmndqtukwagmlejuukwcibxubumenmeyatdrmydiajxloghiqfmzhlvihjouvsuyoypayulyeimuotehzriicfskpggkbbipzzrzucxamludfykgruowzgiooobppleqlwphapjnadqhdcnvwdtxjbmyppphauxnspusgdhiixqmbfjxj
+[DEBUG] received command: hostsend de:ad:be:ef:00:02 de:ad:be:ef:00:01 cvudjsuyibyebmwsiqyoygyxymzevypzvjegebeocfuftsxdixtigsieehkchzdflilrjqfnxztqrsvbspkyhsenbppkqtpddbuotbbqcwivrfxjujjddntgeiqvdgaijvwcyaubwewpjvygehljxepbpiwuqzdzubdubzvafspqpqwuzifwovyddwyvvburczmgyjgfdxvtnunneslsplwuiupfxlzbknhkwppanltcfirjcddsozoyvegurf
+Switch 1 from port 3
+Switch 1 from port 3 to port 0
+[Error] Switch 1 send a broadcast frame while forwarding data frame
+/home/jijianan/ComputerNetwork/lab4-switch-NorthmanPKU/test_local/test.cc:311: Failure
+Expected equality of these values:
+  len
+    Which is: -3
+  1
+[DEBUG] received command: hostsend de:ad:be:ef:00:02 de:ad:be:ef:00:03 wcsfmoxeqmrjowrghwlkobmeahkgccnaehhsveymqpxhlrnunyfdzrhbasjeuygafoubutpnimuwfjqsjxvkqdorxxvrwctdsneogvbpkxlpgdirbfcriqifpgynkrrefxsnvucftpwctgtwmxnupycfgcuqunublmoiitncklefszbexrampetvhqnddjeqvuygpnkazqfrpjvoaxdpcwmjobmskskfojnewxgxnnofwltwjwnnvbwjckdmeo
+Switch 1 from port 3
+Switch 1 from port 3 to port 4
+last hop src = de:ad:be:ef:00:02, length = 1, payload = wcsfmoxeqmrjowrghwlkobmeahkgccnaehhsveymqpxhlrnunyfdzrhbasjeuygafoubutpnimuwfjqsjxvkqdorxxvrwctdsneogvbpkxlpgdirbfcriqifpgynkrrefxsnvucftpwctgtwmxnupycfgcuqunublmoiitncklefszbexrampetvhqnddjeqvuygpnkazqfrpjvoaxdpcwmjobmskskfojnewxgxnnofwltwjwnnvbwjckdmeo
+[DEBUG] received command: hostsend de:ad:be:ef:00:03 de:ad:be:ef:00:01 uuzhyvhgvwujbqxxpitcvograiddvhrrdsycqhkleewhxtembaqwqwpqhsuebnvfgvjwdvjjafqzzxlcxdzncqgjlapopkvxfgvicetcmkbljopgtqvvhbgsdvivhesnkqxmwrqidrvmhlubbryktheyentmrobdeyqcrgluaiihveixwjjrqopubjguxhxdipfzwswybgfylqvjzharvrlyauuzdrcnjkphclffrkeecbpdipufhidjcxjhrn
+Switch 1 from port 4
+Switch 1 from port 4 to port 0
+[Error] Switch 1 send a broadcast frame while forwarding data frame
+/home/jijianan/ComputerNetwork/lab4-switch-NorthmanPKU/test_local/test.cc:311: Failure
+Expected equality of these values:
+  len
+    Which is: -3
+  1

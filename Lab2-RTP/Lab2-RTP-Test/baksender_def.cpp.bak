@@ -1,0 +1,306 @@
+#include "src/sender_def.h"
+#include "src/util.h"
+#include "src/rtp.h"
+#include "src/funcs.h"
+#include <iostream>
+#include <fstream>
+
+#include <stdio.h>   
+#include <sys/types.h>   
+#include <sys/socket.h>   
+#include <netinet/in.h>   
+#include <unistd.h>   
+#include <errno.h>   
+#include <string.h>   
+#include <stdlib.h>   
+#include <vector>
+#include <memory.h>
+
+#define START 0
+#define END 1
+#define DATA 2
+#define ACK 3
+#define MAX_HEAD_SIZE 11
+#define MAX_DATA_SIZE 1461
+#define MAX_DATA_WAITTIME 100
+#define MAX_WINDOW_EXIST_TIME 100
+
+
+using namespace std;
+int sock_fd;
+uint32_t windowsize = 0;
+char recerverip[33];
+uint16_t recerverport = 0;
+struct sockaddr_in receiver_addr;
+
+struct ACKwaiter{
+    uint32_t seq_num;
+    clock_t time;
+    int data_start;
+    int data_size;
+    ACKwaiter(uint32_t _seq_num, clock_t _time):seq_num(_seq_num),time(_time){}
+};
+
+
+int init_sender(const char *receiver_ip, uint16_t receiver_port, uint32_t window_size)
+{
+    sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (sock_fd < 0)
+    {
+        perror("socket");
+        return -1;
+    }
+    struct sockaddr_in sender_addr;
+    memset(&sender_addr, 0, sizeof(sender_addr));
+    sender_addr.sin_family = AF_INET;
+    sender_addr.sin_port = htons(receiver_port);
+    sender_addr.sin_addr.s_addr = inet_addr(INADDR_ANY);
+    if(bind(sock_fd, (struct sockaddr *)&sender_addr, sizeof(sender_addr)) < 0)
+    {
+        perror("bind error:");
+        return -1;
+    }
+
+
+    memset(&receiver_addr, 0, sizeof(receiver_addr));   
+    receiver_addr.sin_family = AF_INET;
+    receiver_addr.sin_port = htons(receiver_port);
+    receiver_addr.sin_addr.s_addr = inet_addr(receiver_ip);
+
+    uint32_t randseqnum=rand();
+    RTP_header starthead = make_head(START, 0, randseqnum);
+    int sendlen=sendto(sock_fd, &starthead, sizeof(starthead), 0, (struct sockaddr *)&receiver_addr, sizeof(receiver_addr));
+    if(sendlen<0)
+    {
+        perror("sendto error:");
+        return -1;
+    }
+    char recvbuf[MAX_HEAD_SIZE];
+    memset(recvbuf, 0, sizeof(recvbuf));
+    int recvlen=recvfrom(sock_fd, recvbuf, sizeof(recvbuf), 0, (struct sockaddr *)&sender_addr, (socklen_t *)sizeof(sender_addr));
+    RTP_header *recvhead=(RTP_header *)recvbuf;
+    if(recvhead->type==ACK&&recvhead->seq_num==randseqnum)
+    {
+        windowsize = window_size;
+        strcpy(recerverip, receiver_ip);
+        recerverport = receiver_port;
+        return 0;
+    }
+    else
+    {
+        return -1;
+    }
+}
+// typedef struct __attribute__ ((__packed__)) RTP_header {
+//     uint8_t type;       // 0: START; 1: END; 2: DATA; 3: ACK
+//     uint16_t length;    // Length of data; 0 for ACK, START and END packets
+//     uint32_t seq_num;
+//     uint32_t checksum;  // 32-bit CRC
+// } rtp_header_t;
+int send_Message(const char *message)
+{   
+    vector<ACKwaiter> sendlist;
+    int curwaitnum=0;
+    int base=0;
+    uint32_t seq_num=0;
+    int mlen=strlen(message);
+    int ret=0;
+    clock_t windowstart=0;
+    while(ret<mlen || curwaitnum>0)
+    {
+        clock_t curtime=clock();
+        if(curtime-windowstart>MAX_WINDOW_EXIST_TIME)
+        {
+            for(int i=0;i<curwaitnum;i++)
+            {
+                int datasend = udpdatasend(sock_fd, message+sendlist[i].data_start, sendlist[i].data_size, sendlist[i].seq_num, receiver_addr);
+                if(datasend<0)
+                {
+                    perror("windows resendto error:");
+                    return -1;
+                }
+            }
+            windowstart=curtime;
+        }
+        for(auto i:sendlist)
+        {
+            if(curtime-i.time>MAX_DATA_WAITTIME)
+            {
+                int datasend = udpdatasend(sock_fd, message+i.data_start, i.data_size, i.seq_num, receiver_addr);
+                if(datasend<0)
+                {
+                    perror("data resendto error:");
+                    return -1;
+                }
+                i.time=curtime;
+            }
+        }
+        if(ret<mlen && curwaitnum<windowsize)
+        {
+            int sendlen=mymin(mlen-ret, MAX_DATA_SIZE);
+            udpdatasend(sock_fd, message+ret, sendlen, seq_num, receiver_addr);
+            ACKwaiter newwaiter(seq_num, clock(), ret, sendlen);
+            sendlist.push_back(newwaiter);
+            curwaitnum++;
+            seq_num=(seq_num + 1) % windowsize; 
+            ret+=sendlen;
+            if(curwaitnum==1)
+            {
+                windowstart=clock();
+            }
+        }
+        char recvbuf[MAX_HEAD_SIZE];
+        memset(recvbuf, 0, sizeof(recvbuf));
+        if(recvfrom(sock_fd, recvbuf, sizeof(recvbuf), MSG_DONTWAIT, (struct sockaddr *)&receiver_addr, (socklen_t *)sizeof(receiver_addr))>0)
+        {
+            RTP_header *recvhead=(RTP_header *)recvbuf;
+            if(recvhead->type==ACK)
+            {
+                for(int i=0;i<curwaitnum;i++)
+                {
+                    if(sendlist[i].seq_num==recvhead->seq_num)
+                    {
+                        sendlist.erase(sendlist.begin()+i);
+                        curwaitnum--;
+                        base=(base+1)%windowsize;
+                        break;
+                    }
+                }
+            }
+        }
+        // int recvlen=recvfrom(sock_fd, recvbuf, sizeof(recvbuf), 0, (struct sockaddr *)&receiver_addr, (socklen_t *)sizeof(receiver_addr));
+        // if(recvlen<0)
+        // {
+        //     if(errno==EAGAIN)
+        //     {
+        //         if(clock()-windowstart>1000)
+        //         {
+        //             for(int i=0;i<curwaitnum;i++)
+        //             {
+        //                 int sendlen=sendlist[i].data_size;
+        //                 RTP_header datahead = make_head(DATA, sendlen, sendlist[i].seq_num);
+        //                 int sendlen2=sendto(sock_fd, &datahead, sizeof(datahead), 0, (struct sockaddr *)&receiver_addr, sizeof(receiver_addr));
+        //                 if(sendlen2<0)
+        //                 {
+        //                     perror("sendto error:");
+        //                     return -1;
+        //                 }
+        //                 int sendlen3=sendto(sock_fd, message+sendlist[i].data_start, sendlen, 0, (struct sockaddr *)&receiver_addr, sizeof(receiver_addr));
+        //                 if(sendlen3<0)
+        //                 {
+        //                     perror("sendto error:");
+        //                     return -1;
+        //                 }
+        //             }
+        //             windowstart = clock();
+        //         }
+        //         continue;
+        //     }
+        //     else
+        //     {
+        //         perror("recvfrom error:");
+        //         return -1;
+        //     }
+        // }
+        RTP_header *recvhead=(RTP_header *)recvbuf;
+        if(recvhead->type==ACK)
+        {
+            for(int i=0;i<curwaitnum;i++)
+            {
+                if(sendlist[i].seq_num==recvhead->seq_num)
+                {
+                    sendlist.erase(sendlist.begin()+i);
+                    curwaitnum--;
+                    base=(base+1)%windowsize;
+                    break;
+                }
+            }
+        }
+    }
+    RTP_header endhead = make_head(END, 0, seq_num);
+    int sendlen=sendto(sock_fd, &endhead, sizeof(endhead), 0, (struct sockaddr *)&receiver_addr, sizeof(receiver_addr));
+    if(sendlen<0)
+    {
+        perror("sendto error:");
+        return -1;
+    }
+    return 0;
+}
+
+    
+
+// int send_Message(const char *message)
+// {   
+//     vector<int> sendlist;
+//     int curwaitnum=0;
+//     int base=0;
+//     uint32_t seq_num=0;
+//     int mlen=strlen(message);
+//     int ret=0;
+//     clock_t windowstart=0;
+//             // int datasize=mymin(mlen-ret, MAX_DATA_SIZE-MAX_HEAD_SIZE);
+//             // RTP_header curhead = make_head(DATA, datasize, seq_num++);
+//             // makedata(message+ret, seq_num);
+//     while(ret<mlen)
+//     {
+//         if(curwaitnum<windowsize){
+//             int datasize=mymin(mlen-ret, MAX_DATA_SIZE-MAX_HEAD_SIZE);
+//             RTP_header curhead = make_head(DATA, datasize, seq_num++);
+//             makedata(message+ret, datasize);
+//             int sendlen=sendto(sock_fd, &curhead, sizeof(curhead), 0, (struct sockaddr *)&receiver_addr, sizeof(receiver_addr));
+//             if(sendlen<0)
+//             {
+//                 perror("head sendto error:");
+//                 return -1;
+//             }
+//             int sendlen2=sendto(sock_fd, message+ret, datasize, 0, (struct sockaddr *)&receiver_addr, sizeof(receiver_addr));
+//             sendlist.push_back(seq_num);
+//             curwaitnum++;
+//             ret+=datasize;
+//         }
+//         else
+//         {
+//             char recvbuf[MAX_HEAD_SIZE];
+//             memset(recvbuf, 0, sizeof(recvbuf));
+//             int recvlen=recvfrom(sock_fd, recvbuf, sizeof(recvbuf), 0, (struct sockaddr *)&receiver_addr, (socklen_t *)sizeof(receiver_addr));
+//             RTP_header *recvhead=(RTP_header *)recvbuf;
+//             if(recvhead->type==ACK)
+//             {
+//                 int acknum=recvhead->seq_num;
+//                 int i=0;
+//                 for(;i<sendlist.size();i++)
+//                 {
+//                     if(sendlist[i]==acknum)
+//                     {
+//                         break;
+//                     }
+//                 }
+//                 if(i==sendlist.size())
+//                 {
+//                     return -1;
+//                 }
+//                 sendlist.erase(sendlist.begin()+i);
+//                 curwaitnum-=1;
+//                 base+=1;
+//             }
+//             else
+//             {
+//                 return -1;
+//             }
+//         }
+//         // int sendlen=sendto(sock_fd, message+ret,mymax(mlen-ret, MAX_DATA_SIZE-MAX_HEAD_SIZE), 0, (struct sockaddr *)&receiver_addr, sizeof(receiver_addr));
+//         // if(sendlen<0)
+//         // {
+//         //     perror("sendto error:");
+//         //     return -1;
+//         // }
+//         // ret+=sendlen;
+//     }
+// }
+
+void terminateSender()
+{
+    
+}
+
